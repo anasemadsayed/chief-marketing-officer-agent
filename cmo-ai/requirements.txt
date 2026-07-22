@@ -1,0 +1,38 @@
+# =============================================================================
+# cmoAI V1 — Dependencies
+# =============================================================================
+
+# --- Data modeling / validation ---------------------------------------------
+pydantic==2.9.2
+pydantic-settings==2.6.1
+
+# --- Environment configuration -----------------------------------------------
+python-dotenv==1.0.1
+
+# --- HTTP clients (collectors, LLM API calls) --------------------------------
+httpx==0.27.2
+requests==2.32.3
+
+# --- HTML parsing (website collector) ----------------------------------------
+beautifulsoup4==4.12.3
+lxml==5.3.0
+
+# --- PDF processing (PDF collector, future brick) ----------------------------
+pypdf==5.1.0
+
+# --- PowerPoint generation (future brick) ------------------------------------
+python-pptx==1.0.2
+
+# --- LLM provider SDKs ---------------------------------------------------
+google-generativeai==0.8.3
+
+# --- API layer (future brick) -------------------------------------------
+fastapi==0.115.4
+uvicorn[standard]==0.32.0
+
+# --- Utilities ------------------------------------------------------------
+python-slugify==8.0.4
+
+# --- Dev / testing ---------------------------------------------------------
+pytest==8.3.3
+pytest-mock==3.14.0
