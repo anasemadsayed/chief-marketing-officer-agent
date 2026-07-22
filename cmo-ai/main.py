@@ -13,10 +13,11 @@ import logging
 
 from config.logging_config import configure_application_logging
 from config.settings import settings
+from storage import initialize_database_schema
 
 
 def verify_project_skeleton_is_configured_correctly() -> None:
-    """Sanity-check settings and logging wiring for Brick 1."""
+    """Sanity-check settings, logging, and database schema wiring."""
     configure_application_logging()
     logger = logging.getLogger(__name__)
 
@@ -29,6 +30,9 @@ def verify_project_skeleton_is_configured_correctly() -> None:
                  settings.small_llm_provider, settings.small_llm_model)
     logger.info("SQLite database path: %s", settings.sqlite_db_full_path)
     logger.info("Log directory: %s", settings.log_directory_path)
+
+    initialize_database_schema()
+    logger.info("Database schema initialized (8 tables ready)")
 
     if not settings.get_main_reasoning_model_api_key():
         logger.warning(
