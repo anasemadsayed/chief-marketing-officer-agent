@@ -56,6 +56,12 @@ class ApplicationSettings(BaseSettings):
     api_host: str = "127.0.0.1"
     api_port: int = 8000
 
+    # -- Website Collector Service ------------------------------------------
+    website_collector_timeout_seconds: int = 15
+    website_collector_max_pages: int = 8
+    website_collector_user_agent: str = "Mozilla/5.0 (compatible; cmoAI-WebsiteCollector/1.0)"
+    website_collector_polite_delay_seconds: float = 0.5
+
     @property
     def sqlite_db_full_path(self) -> Path:
         """Absolute path to the SQLite database file, creating its parent dir."""
