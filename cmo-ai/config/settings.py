@@ -62,6 +62,9 @@ class ApplicationSettings(BaseSettings):
     website_collector_user_agent: str = "Mozilla/5.0 (compatible; cmoAI-WebsiteCollector/1.0)"
     website_collector_polite_delay_seconds: float = 0.5
 
+    # -- PDF Collector Service ------------------------------------------------
+    pdf_collector_max_pages_to_process: int = 100
+
     @property
     def sqlite_db_full_path(self) -> Path:
         """Absolute path to the SQLite database file, creating its parent dir."""
