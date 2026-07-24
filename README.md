@@ -70,12 +70,20 @@ To leave the virtual environment later: `deactivate`
 
 ---
 
+## Running Tests
+
+```bash
+pytest tests/ -v
+```
+
+---
+
 ## Development Roadmap (bricks)
 
-1. **Project Structure & Environment** ← you are here
-2. Domain Models
-3. SQLite Storage Layer
-4. Website Collector Service
+1. ~~Project Structure & Environment~~ ✅
+2. ~~Domain Models~~ ✅
+3. ~~SQLite Storage Layer~~ ✅
+4. ~~Website Collector Service~~ ✅ ← you are here
 5. PDF & Social Media Collector Services
 6. Market Research Service (small LLM)
 7. Information Extraction Service (small LLM)
