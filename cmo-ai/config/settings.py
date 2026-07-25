@@ -65,6 +65,10 @@ class ApplicationSettings(BaseSettings):
     # -- PDF Collector Service ------------------------------------------------
     pdf_collector_max_pages_to_process: int = 100
 
+    # -- Social Media Collector Service ----------------------------------------
+    social_media_collector_timeout_seconds: int = 15
+    social_media_collector_user_agent: str = "Mozilla/5.0 (compatible; cmoAI-SocialMediaCollector/1.0)"
+
     @property
     def sqlite_db_full_path(self) -> Path:
         """Absolute path to the SQLite database file, creating its parent dir."""
