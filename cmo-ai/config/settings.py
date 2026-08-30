@@ -73,6 +73,14 @@ class ApplicationSettings(BaseSettings):
     market_research_max_context_characters: int = 3000
     market_research_llm_temperature: float = 0.3
 
+    # -- Information Extraction Service ------------------------------------------
+    information_extraction_max_context_characters: int = 12000
+    information_extraction_llm_temperature: float = 0.2
+
+    # -- Orchestrator: Diagnosis --------------------------------------------------
+    diagnosis_llm_temperature: float = 0.4
+    diagnosis_llm_max_output_tokens: int = 3000
+
     @property
     def sqlite_db_full_path(self) -> Path:
         """Absolute path to the SQLite database file, creating its parent dir."""
