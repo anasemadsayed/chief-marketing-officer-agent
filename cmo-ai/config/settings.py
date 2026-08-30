@@ -69,6 +69,10 @@ class ApplicationSettings(BaseSettings):
     social_media_collector_timeout_seconds: int = 15
     social_media_collector_user_agent: str = "Mozilla/5.0 (compatible; cmoAI-SocialMediaCollector/1.0)"
 
+    # -- Market Research Service ------------------------------------------------
+    market_research_max_context_characters: int = 3000
+    market_research_llm_temperature: float = 0.3
+
     @property
     def sqlite_db_full_path(self) -> Path:
         """Absolute path to the SQLite database file, creating its parent dir."""
