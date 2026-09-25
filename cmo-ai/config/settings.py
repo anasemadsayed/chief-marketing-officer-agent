@@ -81,6 +81,13 @@ class ApplicationSettings(BaseSettings):
     diagnosis_llm_temperature: float = 0.4
     diagnosis_llm_max_output_tokens: int = 3000
 
+    # -- Orchestrator: Marketing Strategy ------------------------------------------
+    strategy_llm_temperature: float = 0.5
+    strategy_llm_max_output_tokens: int = 3500
+
+    # -- PowerPoint Generator Service ------------------------------------------
+    powerpoint_output_directory: str = "./data/generated_reports"
+
     @property
     def sqlite_db_full_path(self) -> Path:
         """Absolute path to the SQLite database file, creating its parent dir."""
@@ -92,6 +99,13 @@ class ApplicationSettings(BaseSettings):
     def log_directory_path(self) -> Path:
         """Absolute path to the log directory, created if missing."""
         path = Path(self.log_dir).resolve()
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    @property
+    def powerpoint_output_directory_path(self) -> Path:
+        """Absolute path to the generated-PowerPoint output directory, created if missing."""
+        path = Path(self.powerpoint_output_directory).resolve()
         path.mkdir(parents=True, exist_ok=True)
         return path
 

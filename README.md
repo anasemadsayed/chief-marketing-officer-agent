@@ -78,19 +78,52 @@ pytest tests/ -v
 
 ---
 
+## Running the API
+
+```bash
+uvicorn api.main:app --reload
+```
+
+Then visit `http://127.0.0.1:8000/docs` for interactive API docs (Swagger UI), or:
+
+```bash
+# Run a full analysis (this can take a minute or two: web scraping + several LLM calls)
+curl -X POST http://127.0.0.1:8000/consulting-cases \
+  -H "Content-Type: application/json" \
+  -d '{"company_name": "Acme Corp", "website_url": "https://acme.example.com"}'
+
+# Check a case's status
+curl http://127.0.0.1:8000/consulting-cases/{case_id}
+
+# Fetch its report once ready
+curl http://127.0.0.1:8000/consulting-cases/{case_id}/report
+
+# Download the PowerPoint
+curl -OJ http://127.0.0.1:8000/consulting-cases/{case_id}/download-pptx
+
+# If the diagnosis said marketing wasn't the primary issue, request a strategy anyway
+curl -X POST http://127.0.0.1:8000/consulting-cases/{case_id}/generate-strategy-anyway
+```
+
+No background task queue exists in V1 by design (see Design Principles below), so
+`POST /consulting-cases` runs synchronously and the HTTP response only returns
+once the full pipeline finishes.
+
+---
+
 ## Development Roadmap (bricks)
 
 1. ~~Project Structure & Environment~~ ✅
 2. ~~Domain Models~~ ✅
 3. ~~SQLite Storage Layer~~ ✅
-4. ~~Website Collector Service~~ ✅ ← you are here
-5. PDF & Social Media Collector Services
-6. Market Research Service (small LLM)
-7. Information Extraction Service (small LLM)
-8. Orchestrator — Diagnosis
-9. Orchestrator — Strategy & Report Generation
-10. PowerPoint Generator
-11. API Layer / Main Flow Wiring
+4. ~~Website Collector Service~~ ✅
+5. ~~PDF & Social Media Collector Services~~ ✅ ← you are here
+6. ~~Market Research Service (small LLM)~~ ✅ ← you are here
+7. ~~Information Extraction Service (small LLM)~~ ✅ ← you are here
+8. ~~Orchestrator — Diagnosis~~ ✅
+9. ~~Orchestrator — Strategy & Report Generation~~ ✅ ← you are here
+10. ~~PowerPoint Generator~~ ✅ ← you are here
+11. ~~API Layer / Main Flow Wiring~~ ✅ ← V1 complete
 
 ---
 

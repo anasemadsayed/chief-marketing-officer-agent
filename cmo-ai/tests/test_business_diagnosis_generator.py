@@ -14,6 +14,7 @@ import pytest
 
 from domain import CompetitorProfile, ExtractedCompanyInformation, MarketResearch
 from orchestrator import business_diagnosis_generator as generator
+from orchestrator.context_builders import build_extracted_information_context, build_market_research_context
 from orchestrator.errors import OrchestratorError
 from orchestrator.main_llm_client import MainLlmClientError
 from storage.business_diagnosis_repository import get_business_diagnosis_by_case_id
@@ -94,7 +95,7 @@ def _make_market_research(case_id: str = "case-1") -> MarketResearch:
 
 def test_build_extracted_information_context_includes_populated_fields_only():
     info = ExtractedCompanyInformation(consulting_case_id="case-1", value_proposition="Best in class.")
-    block = generator._build_extracted_information_context(info)
+    block = build_extracted_information_context(info)
 
     assert "Value proposition: Best in class." in block
     assert "Products/services" not in block  # empty list -> omitted
@@ -102,7 +103,7 @@ def test_build_extracted_information_context_includes_populated_fields_only():
 
 def test_build_market_research_context_includes_competitor_notes():
     research = _make_market_research()
-    block = generator._build_market_research_context(research)
+    block = build_market_research_context(research)
 
     assert "Rival Inc ($35/user/month)" in block
     assert "AI-assisted planning" in block

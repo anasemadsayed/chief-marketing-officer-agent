@@ -24,6 +24,7 @@ from pydantic import ValidationError
 
 from config.settings import settings
 from domain import BusinessDiagnosis, ExtractedCompanyInformation, Finding, MarketResearch
+from orchestrator.context_builders import build_extracted_information_context, build_market_research_context
 from orchestrator.errors import OrchestratorError
 from orchestrator.main_llm_client import MainLlmClientError, generate_json_response_from_main_llm
 from storage.business_diagnosis_repository import save_business_diagnosis
@@ -100,8 +101,8 @@ def analyze_company_business_case(
     mislead the business owner reading the final report, so failure here
     must be visible, not papered over.
     """
-    extracted_information_block = _build_extracted_information_context(extracted_information)
-    market_research_block = _build_market_research_context(market_research)
+    extracted_information_block = build_extracted_information_context(extracted_information)
+    market_research_block = build_market_research_context(market_research)
 
     prompt = _DIAGNOSIS_PROMPT_TEMPLATE.format(
         company_name=company_name,
@@ -160,50 +161,6 @@ def analyze_company_business_case_for_consulting_case(
         extracted_information=extracted_information,
         market_research=market_research,
     )
-
-
-def _build_extracted_information_context(info: ExtractedCompanyInformation) -> str:
-    """Render the cleaned company information as labeled plain text for the prompt."""
-    lines: list[str] = []
-
-    if info.company_description_summary:
-        lines.append(f"Description: {info.company_description_summary}")
-    if info.value_proposition:
-        lines.append(f"Value proposition: {info.value_proposition}")
-    if info.products_and_services:
-        lines.append("Products/services: " + "; ".join(info.products_and_services))
-    if info.unique_selling_points:
-        lines.append("Unique selling points: " + "; ".join(info.unique_selling_points))
-    if info.target_audience_signals:
-        lines.append("Target audience signals: " + "; ".join(info.target_audience_signals))
-    if info.pricing_information:
-        lines.append("Pricing information: " + "; ".join(info.pricing_information))
-    if info.notable_content_snippets:
-        lines.append("Notable snippets: " + " | ".join(info.notable_content_snippets))
-
-    return "\n".join(lines)
-
-
-def _build_market_research_context(research: MarketResearch) -> str:
-    """Render the market research as labeled plain text for the prompt."""
-    lines: list[str] = []
-
-    if research.industry_overview:
-        lines.append(f"Industry: {research.industry_overview}")
-    if research.competitors:
-        competitor_descriptions = [
-            f"{competitor.name}" + (f" ({competitor.notes})" if competitor.notes else "")
-            for competitor in research.competitors
-        ]
-        lines.append("Competitors: " + "; ".join(competitor_descriptions))
-    if research.target_audience_characteristics:
-        lines.append("Market-level audience traits: " + "; ".join(research.target_audience_characteristics))
-    if research.market_trends:
-        lines.append("Market trends: " + "; ".join(research.market_trends))
-    if research.additional_notes:
-        lines.append("Additional notes: " + "; ".join(research.additional_notes))
-
-    return "\n".join(lines)
 
 
 def _parse_diagnosis_response(consulting_case_id: str, data: dict) -> BusinessDiagnosis:
