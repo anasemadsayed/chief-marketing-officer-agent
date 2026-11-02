@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>cmoAI — Growth Diagnosis</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fff;--soft:#f3f2ee;--ink:#111;--muted:#6a6a66;--line:#d6d5cf;--sig:#ff4f1f;--ok:#0f7a3d;--bad:#c4161c;--sans:'Helvetica Neue',Helvetica,Arial,sans-serif;--mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+body{font:15px/1.55 var(--sans);background:var(--bg);color:var(--ink);min-height:100vh}
+a{color:var(--ink);text-decoration-color:var(--sig);text-underline-offset:3px}
+.mono,.lbl{font-family:var(--mono)}
+.lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+header{display:flex;justify-content:space-between;align-items:stretch;border-bottom:2px solid var(--ink);position:sticky;top:0;background:var(--bg);z-index:50}
+.wordmark{font-weight:800;font-size:1.15rem;letter-spacing:-.03em;padding:.9rem 1.5rem;border-right:2px solid var(--ink)}
+.wordmark i{font-style:normal;color:var(--sig)}
+nav{display:flex}
+.nav-btn{background:none;border:0;border-left:2px solid var(--ink);font:500 .72rem var(--mono);text-transform:uppercase;letter-spacing:.08em;padding:0 1.4rem;cursor:pointer;color:var(--ink)}
+.nav-btn:hover{background:var(--soft)}
+.nav-btn.active{background:var(--ink);color:#fff}
+
+.content{max-width:1000px;margin:0 auto;padding:3rem 1.5rem 5rem}
+.page{display:none}.page.active{display:block}
+
+button{font-family:var(--mono)}
+.btn-primary,.btn-secondary,.btn-action,.btn-icon{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;padding:.7rem 1.2rem;border:2px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;transition:background .12s,color .12s,border-color .12s}
+.btn-primary:hover:not(:disabled){background:var(--sig);border-color:var(--sig)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary,.btn-action,.btn-icon{background:var(--bg);color:var(--ink)}
+.btn-secondary:hover,.btn-action:hover,.btn-icon:hover{background:var(--ink);color:#fff}
+.btn-action{padding:.5rem .85rem;font-size:.7rem}
+.btn-action.primary-action{background:var(--sig);border-color:var(--sig);color:#fff}
+.btn-action.primary-action:hover{background:var(--ink);border-color:var(--ink)}
+
+.hero h1 {font-size: clamp(2.6rem, 7vw, 5.2rem);line-height: .98;letter-spacing: -.04em;font-weight: 800;max-width: 14ch;}
+.hero h1 em {font-style: normal;background: var(--sig);color: #fff;padding: 0 .12em;position: relative;top: 10px;}
+.hero > p {max-width: 46ch;margin: 1.5rem 0 2rem;color: var(--muted);font-size: 1.05rem;}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--ink);margin:3.5rem 0 3rem}
+.step-card{padding:1.2rem;border-right:2px solid var(--ink)}
+.step-card:last-child{border-right:0}
+.step-card b{display:block;font-size:1.05rem;margin:.4rem 0 .2rem}
+.step-card p{font-size:.82rem;color:var(--muted)}
+.recent-head{display:flex;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:.4rem}
+
+.case-list .row,.row{display:grid;grid-template-columns:1fr 150px 150px;gap:1rem;align-items:center;padding:.9rem .5rem;border-bottom:1px solid var(--line);cursor:pointer}
+.row:hover{background:var(--soft)}
+.row-name{font-weight:700;font-size:1.05rem;letter-spacing:-.01em}
+.row-sub{font:.72rem var(--mono);color:var(--muted)}
+.case-item-name{font-weight:700}
+.st{font:600 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.st::before{content:'';display:inline-block;width:8px;height:8px;background:currentColor;margin-right:.45rem}
+.st.completed{color:var(--ok)}.st.failed{color:var(--bad)}.st.running{color:var(--sig)}.st.created{color:var(--muted)}
+
+.form-title,.page-title{font-size:2.6rem;font-weight:800;letter-spacing:-.035em;line-height:1;margin-bottom:2rem}
+.form-section{margin-bottom:2.2rem}
+.form-section-title{font:600 .72rem var(--mono);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--ink);padding-bottom:.4rem;margin-bottom:1rem}
+.form-group{margin-bottom:.9rem}
+label{display:block;font:500 .7rem var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.25rem}
+.required{color:var(--sig)}
+input[type=text],input[type=url]{width:100%;border:0;border-bottom:2px solid var(--line);background:var(--soft);padding:.75rem .8rem;font:inherit;color:var(--ink);outline:none;border-radius:0}
+input:focus{border-bottom-color:var(--sig);background:#fff;box-shadow:inset 0 0 0 2px var(--ink)}
+.hint{font:.7rem var(--mono);color:var(--muted);margin-top:.25rem}
+.extra-links{display:flex;flex-direction:column;gap:.5rem}
+.extra-link-row{display:flex;gap:.5rem}
+.form-actions{display:flex;gap:.75rem}
+
+.detail-header{border-bottom:2px solid var(--ink);padding-bottom:1.5rem;margin-bottom:2.5rem}
+.detail-title{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:800;letter-spacing:-.04em;line-height:1;margin:.5rem 0 1rem}
+.detail-meta{display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center;margin-bottom:1.2rem}
+.tag{font:600 .68rem var(--mono);text-transform:uppercase;letter-spacing:.06em;background:var(--ink);color:#fff;padding:.2rem .5rem}
+.detail-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+
+.section{margin-bottom:3rem;counter-increment:s}
+.detail-body{counter-reset:s}
+.section-title{font:600 .75rem var(--mono);text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid var(--ink);padding-bottom:.4rem;margin-bottom:1rem}
+.section-title::before{content:'0' counter(s) ' / ';color:var(--sig)}
+.sub-title{font:600 .7rem var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:1.8rem 0 .5rem}
+dl.kv{display:grid;grid-template-columns:150px 1fr;border-top:1px solid var(--line)}
+dl.kv dt,dl.kv dd{padding:.55rem 0;border-bottom:1px solid var(--line);font-size:.88rem}
+dl.kv dt{font:.7rem var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding-top:.7rem}
+dl.kv dd{word-break:break-all}
+.errbox{margin-top:1rem;border:2px solid var(--bad);padding:.7rem 1rem;color:var(--bad);font-size:.85rem}
+
+.verdict{background:var(--ink);color:#fff;padding:1.5rem;margin-bottom:1.2rem}
+.verdict .lbl{color:var(--sig)}
+.verdict h3{font-size:1.7rem;letter-spacing:-.03em;line-height:1.1;margin:.3rem 0 .6rem}
+.verdict p{color:#c9c9c4;font-size:.92rem;max-width:62ch}
+.verdict.no .lbl{color:#9a9a95}
+.conf{font:700 .72rem var(--mono);text-transform:uppercase}
+.conf.high{color:var(--ok)}.conf.medium{color:var(--sig)}.conf.low{color:var(--bad)}
+.finding{display:grid;grid-template-columns:1fr auto;gap:.2rem 1rem;padding:.85rem 0;border-bottom:1px solid var(--line)}
+.finding b{font-size:.95rem}
+.finding p{grid-column:1/-1;font-size:.86rem;color:var(--muted)}
+
+.warn{border:2px solid var(--sig);color:var(--sig);padding:.7rem 1rem;font-size:.86rem;margin-bottom:1.2rem}
+.lead{font-size:1.3rem;line-height:1.45;letter-spacing:-.015em;max-width:60ch}
+.obj{list-style:none;counter-reset:o}
+.obj li{counter-increment:o;display:grid;grid-template-columns:3rem 1fr;padding:.65rem 0;border-bottom:1px solid var(--line);font-size:.92rem}
+.obj li::before{content:'0' counter(o);font:600 .8rem var(--mono);color:var(--sig);padding-top:.15rem}
+.channels{display:flex;flex-wrap:wrap;gap:.4rem}
+.channel-tag{border:2px solid var(--ink);font:600 .72rem var(--mono);text-transform:uppercase;padding:.25rem .6rem}
+.init{display:grid;grid-template-columns:3.2rem 1fr;padding:1.3rem 0;border-top:2px solid var(--ink)}
+.init-n{font:800 1.6rem var(--sans);letter-spacing:-.04em;color:var(--sig)}
+.init h4{font-size:1.15rem;letter-spacing:-.02em;margin-bottom:.3rem}
+.init p{font-size:.9rem;color:var(--muted);max-width:62ch}
+.impact{display:inline-block;margin-top:.7rem;font:600 .75rem var(--mono);background:var(--soft);border-left:3px solid var(--ok);padding:.3rem .6rem}
+.init ul{margin:.7rem 0 0 1.1rem;font-size:.82rem;color:var(--muted)}
+
+.loading-state{padding:4rem 0;max-width:520px}
+.loading-state h2{font-size:2.4rem;font-weight:800;letter-spacing:-.035em;line-height:1;margin:.5rem 0 1.5rem}
+.bar{height:6px;background:var(--soft);overflow:hidden}
+.bar::after{content:'';display:block;height:100%;width:25%;background:var(--sig);animation:slide 1.2s linear infinite}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(420%)}}
+.loading-state p{margin-top:1rem;color:var(--muted);font-size:.88rem}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:.5rem;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{padding:1.2rem 0;color:var(--muted);font-size:.9rem}
+
+#toast-container{position:fixed;bottom:1.2rem;right:1.2rem;display:flex;flex-direction:column;gap:.5rem;z-index:99}
+.toast{background:var(--ink);color:#fff;font:.78rem var(--mono);padding:.8rem 1rem;min-width:240px;border-left:6px solid var(--ok)}
+.toast.error{border-left-color:var(--sig)}
+
+@media(max-width:720px){.steps{grid-template-columns:1fr}.step-card{border-right:0;border-bottom:2px solid var(--ink)}.step-card:last-child{border-bottom:0}.row{grid-template-columns:1fr auto}.row>:nth-child(3){display:none}.wordmark{padding:.9rem 1rem}.nav-btn{padding:0 .8rem}dl.kv{grid-template-columns:100px 1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">cmo<i>AI</i></div>
+  <nav>
+    <button class="nav-btn active" onclick="showPage('home')">Home</button>
+    <button class="nav-btn" onclick="showPage('new-case')">New</button>
+    <button class="nav-btn" onclick="showPage('cases')">Cases</button>
+  </nav>
+</header>
+
+<div class="content">
+
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <div class="lbl" style="margin-bottom:1.2rem">Chief Marketing Officer agent</div>
+      <h1>Is marketing really your <em>problem?</em></h1>
+      <p>The agent researches your company, finds the real growth bottleneck, and writes a marketing strategy with a PowerPoint deck only when marketing is the right lever.</p>
+      <button class="btn-primary" onclick="showPage('new-case')">Start analysis &rarr;</button>
+    </div>
+    <div class="steps">
+      <div class="step-card"><span class="lbl">01</span><b>Submit</b><p>A company name plus any website, social page or PDF.</p></div>
+      <div class="step-card"><span class="lbl">02</span><b>Diagnose</b><p>Sources are scraped and researched to pinpoint the bottleneck.</p></div>
+      <div class="step-card"><span class="lbl">03</span><b>Strategize</b><p>A report and, when warranted, a downloadable deck.</p></div>
+    </div>
+    <div class="recent-head"><span class="lbl">Recent cases</span><a href="#" class="lbl" onclick="showPage('cases');return false">View all</a></div>
+    <div class="case-list" id="sidebar-case-list"><div class="empty-state">No cases yet.</div></div>
+  </div>
+
+  <div class="page" id="page-new-case">
+    <h1 class="form-title">New analysis</h1>
+    <form id="new-case-form" onsubmit="submitNewCase(event)">
+      <div class="form-section">
+        <div class="form-section-title">Company</div>
+        <div class="form-group">
+          <label>Company name <span class="required">*</span></label>
+          <input type="text" id="field-company-name" placeholder="Acme Corp" required />
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">Sources (at least one)</div>
+        <div class="form-group"><label>Website</label><input type="url" id="field-website-url" placeholder="https://example.com" /></div>
+        <div class="form-group"><label>LinkedIn</label><input type="url" id="field-linkedin-url" placeholder="https://linkedin.com/company/..." /></div>
+        <div class="form-group"><label>Facebook</label><input type="url" id="field-facebook-url" placeholder="https://facebook.com/..." /></div>
+        <div class="form-group"><label>Instagram</label><input type="url" id="field-instagram-url" placeholder="https://instagram.com/..." /></div>
+        <div class="form-group">
+          <label>PDF file path</label>
+          <input type="text" id="field-pdf-path" placeholder="/absolute/path/to/document.pdf" />
+          <div class="hint">Absolute path to a PDF on the server filesystem.</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">Additional links (optional)</div>
+        <div class="extra-links" id="extra-links-container">
+          <div class="extra-link-row">
+            <input type="url" placeholder="https://..." style="flex:1" />
+            <button type="button" class="btn-icon" onclick="addExtraLink()">Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" id="submit-btn">Run analysis</button>
+        <button type="button" class="btn-secondary" onclick="showPage('home')">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="page" id="page-cases">
+    <h1 class="page-title">All cases</h1>
+    <div id="cases-list-content"></div>
+  </div>
+
+  <div class="page" id="page-case-detail"><div id="case-detail-content"></div></div>
+
+  <div class="page" id="page-loading">
+    <div class="loading-state">
+      <div class="lbl">In progress</div>
+      <h2>Analyzing<br/><span id="loading-company"></span></h2>
+      <div class="bar"></div>
+      <p>Scraping sources, researching the market, diagnosing the bottleneck. This can take a few minutes.</p>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+const API = '';
+let currentCaseId = null;
+let cases = [];
+
+function showPage(name, extra) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const navMap = { home: 0, 'new-case': 1, cases: 2 };
+  if (navMap[name] !== undefined) document.querySelectorAll('.nav-btn')[navMap[name]].classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'cases') loadCasesList();
+  if (name === 'case-detail' && extra) loadCaseDetail(extra);
+}
+
+function caseRow(c) {
+  return `
+    <div class="row" onclick="openCase('${c.id}')">
+      <div>
+        <div class="row-name">${esc(c.company_name)}</div>
+        <div class="row-sub">${[c.website_url && 'website', c.linkedin_url && 'linkedin', c.pdf_file_path && 'pdf'].filter(Boolean).join(' / ') || '&nbsp;'}</div>
+      </div>
+      <div class="st ${statusClass(c.status)}">${formatStatus(c.status)}</div>
+      <div class="row-sub">${timeAgo(c.created_at)}</div>
+    </div>`;
+}
+
+async function loadSidebar() {
+  try {
+    const res = await fetch(API + '/consulting-cases');
+    if (!res.ok) return;
+    cases = await res.json();
+    renderSidebar();
+  } catch {}
+}
+
+function renderSidebar() {
+  const el = document.getElementById('sidebar-case-list');
+  el.innerHTML = cases.length
+    ? cases.slice().reverse().slice(0, 5).map(caseRow).join('')
+    : '<div class="empty-state">No cases yet.</div>';
+}
+
+async function loadCasesList() {
+  const el = document.getElementById('cases-list-content');
+  el.innerHTML = '<div class="empty-state">Loading…</div>';
+  try {
+    const res = await fetch(API + '/consulting-cases');
+    cases = await res.json();
+    renderSidebar();
+    el.innerHTML = cases.length
+      ? cases.slice().reverse().map(caseRow).join('')
+      : '<div class="empty-state">No cases yet. <a href="#" onclick="showPage(\'new-case\');return false">Start your first analysis</a>.</div>';
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state">Failed to load cases: ${esc(e.message)}</div>`;
+  }
+}
+
+async function openCase(id) {
+  currentCaseId = id;
+  showPage('case-detail', id);
+}
+
+async function loadCaseDetail(id) {
+  const el = document.getElementById('case-detail-content');
+  el.innerHTML = '<div class="empty-state">Loading…</div>';
+  try {
+    const [caseRes, reportRes] = await Promise.all([
+      fetch(API + '/consulting-cases/' + id),
+      fetch(API + '/consulting-cases/' + id + '/report')
+    ]);
+    const caseData = await caseRes.json();
+    const report = reportRes.ok ? await reportRes.json() : null;
+    el.innerHTML = renderCaseDetail(caseData, report);
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`;
+  }
+}
+
+function renderCaseDetail(c, report) {
+  const isCompleted = c.status === 'completed';
+  const hasPptx = report && report.powerpoint_file_path;
+  const links = [['Website', c.website_url], ['LinkedIn', c.linkedin_url], ['Facebook', c.facebook_url], ['Instagram', c.instagram_url]]
+    .filter(x => x[1]).map(x => `<dt>${x[0]}</dt><dd><a href="${esc(x[1])}" target="_blank" rel="noopener">${esc(x[1])}</a></dd>`);
+  (c.additional_links || []).forEach((l, i) => links.push(`<dt>Link ${i + 1}</dt><dd><a href="${esc(l)}" target="_blank" rel="noopener">${esc(l)}</a></dd>`));
+  if (c.pdf_file_path) links.push(`<dt>PDF</dt><dd class="mono">${esc(c.pdf_file_path)}</dd>`);
+
+  return `
+    <div class="detail-header">
+      <div class="lbl">Case ${esc(c.id)}</div>
+      <div class="detail-title">${esc(c.company_name)}</div>
+      <div class="detail-meta">
+        <span class="st ${statusClass(c.status)}">${formatStatus(c.status)}</span>
+        ${report ? `<span class="tag">${report.report_type === 'diagnosis_and_strategy' ? 'Strategy included' : 'Diagnosis only'}</span>` : ''}
+        <span class="lbl">${formatDate(c.created_at)}</span>
+      </div>
+      <div class="detail-actions">
+        ${hasPptx ? `<button class="btn-action primary-action" onclick="downloadPptx('${c.id}')">Download PPTX</button>` : ''}
+        ${isCompleted && report && report.report_type === 'diagnosis_only' ? `<button class="btn-action" onclick="generateStrategyAnyway('${c.id}')">Generate strategy anyway</button>` : ''}
+        <button class="btn-action" onclick="loadCaseDetail('${c.id}')">Refresh</button>
+        <button class="btn-action" onclick="showPage('cases')">Back</button>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="section">
+        <div class="section-title">Case information</div>
+        <dl class="kv">
+          <dt>Status</dt><dd>${formatStatus(c.status)}</dd>
+          <dt>Created</dt><dd>${formatDate(c.created_at)}</dd>
+          <dt>Updated</dt><dd>${formatDate(c.updated_at)}</dd>
+          ${links.join('')}
+        </dl>
+        ${c.failure_reason ? `<div class="errbox">${esc(c.failure_reason)}</div>` : ''}
+      </div>
+      ${report ? renderReport(report) : ''}
+    </div>`;
+}
+
+function renderReport(report) {
+  const d = report.diagnosis, s = report.strategy;
+  const isMarketing = d.decision === 'marketing_is_the_primary_issue';
+  return `
+    <div class="section">
+      <div class="section-title">Diagnosis</div>
+      <div class="verdict ${isMarketing ? '' : 'no'}">
+        <span class="lbl">Verdict</span>
+        <h3>${isMarketing ? 'Marketing is the primary issue.' : 'Marketing is not the primary issue.'}</h3>
+        <p>${esc(d.reasoning_summary)}</p>
+      </div>
+      <dl class="kv">
+        <dt>Bottleneck</dt><dd><strong>${esc(d.primary_bottleneck)}</strong></dd>
+        <dt>Confidence</dt><dd><span class="conf ${esc(d.confidence)}">${esc(d.confidence)}</span></dd>
+      </dl>
+      ${d.supporting_findings && d.supporting_findings.length ? `
+        <div class="sub-title">Supporting findings</div>
+        ${d.supporting_findings.map(f => `
+          <div class="finding">
+            <b>${esc(f.title || f.category || 'Finding')}</b>
+            ${f.confidence ? `<span class="conf ${esc(f.confidence)}">${esc(f.confidence)}</span>` : '<span></span>'}
+            <p>${esc(f.description || f.summary || '')}</p>
+          </div>`).join('')}` : ''}
+    </div>
+    ${s ? renderStrategy(s) : ''}`;
+}
+
+function renderStrategy(s) {
+  return `
+    <div class="section">
+      <div class="section-title">Marketing strategy</div>
+      ${s.override_warning_message ? `<div class="warn">${esc(s.override_warning_message)}</div>` : ''}
+      <div class="lead">${esc(s.executive_summary)}</div>
+      ${s.strategic_objectives && s.strategic_objectives.length ? `
+        <div class="sub-title">Objectives</div>
+        <ul class="obj">${s.strategic_objectives.map(o => `<li>${esc(o)}</li>`).join('')}</ul>` : ''}
+      ${s.recommended_channels && s.recommended_channels.length ? `
+        <div class="sub-title">Channels</div>
+        <div class="channels">${s.recommended_channels.map(ch => `<span class="channel-tag">${esc(ch)}</span>`).join('')}</div>` : ''}
+      ${s.key_initiatives && s.key_initiatives.length ? `
+        <div class="sub-title">Key initiatives</div>
+        ${s.key_initiatives.map((i, n) => `
+          <div class="init">
+            <div class="init-n">${n + 1}</div>
+            <div>
+              <h4>${esc(i.title)}</h4>
+              <p>${esc(i.description)}</p>
+              ${i.expected_impact ? `<div class="impact">Impact: ${esc(i.expected_impact)}</div>` : ''}
+              ${i.supporting_evidence && i.supporting_evidence.length ? `<ul>${i.supporting_evidence.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
+            </div>
+          </div>`).join('')}` : ''}
+    </div>`;
+}
+
+async function submitNewCase(e) {
+  e.preventDefault();
+  const companyName = document.getElementById('field-company-name').value.trim();
+  if (!companyName) return;
+  const body = { company_name: companyName, additional_links: [] };
+  const v = id => document.getElementById(id).value.trim();
+  if (v('field-website-url'))   body.website_url   = v('field-website-url');
+  if (v('field-linkedin-url'))  body.linkedin_url  = v('field-linkedin-url');
+  if (v('field-facebook-url'))  body.facebook_url  = v('field-facebook-url');
+  if (v('field-instagram-url')) body.instagram_url = v('field-instagram-url');
+  if (v('field-pdf-path'))      body.pdf_file_path = v('field-pdf-path');
+  document.querySelectorAll('#extra-links-container input[type="url"]').forEach(inp => {
+    const x = inp.value.trim(); if (x) body.additional_links.push(x);
+  });
+  const hasSrc = body.website_url || body.linkedin_url || body.facebook_url || body.instagram_url || body.pdf_file_path || body.additional_links.length;
+  if (!hasSrc) { toast('Please provide at least one information source.', 'error'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Running';
+  document.getElementById('loading-company').textContent = companyName;
+  showPage('loading');
+
+  try {
+    const res = await fetch(API + '/consulting-cases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || res.statusText);
+    }
+    const report = await res.json();
+    toast('Analysis complete.', 'success');
+    await loadSidebar();
+    openCase(report.consulting_case_id);
+    document.getElementById('new-case-form').reset();
+    document.getElementById('extra-links-container').innerHTML = `
+      <div class="extra-link-row">
+        <input type="url" placeholder="https://..." style="flex:1" />
+        <button type="button" class="btn-icon" onclick="addExtraLink()">Add</button>
+      </div>`;
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    showPage('new-case');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run analysis';
+  }
+}
+
+async function generateStrategyAnyway(caseId) {
+  if (!confirm('Generate a marketing strategy even though the diagnosis found marketing is not the primary issue?')) return;
+  showPage('loading');
+  document.getElementById('loading-company').textContent = 'override strategy';
+  try {
+    const res = await fetch(API + '/consulting-cases/' + caseId + '/generate-strategy-anyway', { method: 'POST' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || res.statusText);
+    }
+    toast('Strategy generated.', 'success');
+    openCase(caseId);
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    openCase(caseId);
+  }
+}
+
+function downloadPptx(caseId) { window.location.href = API + '/consulting-cases/' + caseId + '/download-pptx'; }
+
+function addExtraLink() {
+  const row = document.createElement('div');
+  row.className = 'extra-link-row';
+  row.innerHTML = `<input type="url" placeholder="https://..." style="flex:1" /><button type="button" class="btn-icon" onclick="this.parentElement.remove()">Remove</button>`;
+  document.getElementById('extra-links-container').appendChild(row);
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function statusClass(s) {
+  if (!s) return 'created';
+  if (s === 'completed') return 'completed';
+  if (s === 'failed') return 'failed';
+  if (['collecting_information','performing_market_research','extracting_information','diagnosing_business_case','generating_strategy'].includes(s)) return 'running';
+  return 'created';
+}
+function formatStatus(s) { return s ? s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown'; }
+function formatDate(iso) { return iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—'; }
+function timeAgo(iso) {
+  if (!iso) return '';
+  const d = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (d < 60) return 'just now';
+  if (d < 3600) return Math.floor(d / 60) + 'm ago';
+  if (d < 86400) return Math.floor(d / 3600) + 'h ago';
+  return Math.floor(d / 86400) + 'd ago';
+}
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+loadSidebar();
+</script>
+</body>
+</html>
