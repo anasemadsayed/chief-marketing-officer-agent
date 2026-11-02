@@ -27,30 +27,41 @@ from storage.market_research_repository import save_market_research
 logger = logging.getLogger(__name__)
 
 _MARKET_RESEARCH_PROMPT_TEMPLATE = """\
-You are a market research analyst. Research the company described below \
-and return ONLY a JSON object (no markdown formatting, no commentary, no \
-explanation) with exactly this shape:
+You are a senior market intelligence director conducting competitive and market research for the target company.
+Analyze the target company, identify its exact market niche, regional landscape (e.g. geographic focus like Egypt/MENA/Global), and produce actionable, high-depth competitive intelligence.
+
+Return ONLY a JSON object (no markdown formatting, no commentary, no explanation) with exactly this shape:
 
 {{
-  "industry_overview": "1-3 sentence description of the industry this company operates in",
+  "industry_overview": "Comprehensive 3-5 sentence analysis of the industry sector, current market size/dynamics, growth drivers, and regional nuances for this business.",
   "competitors": [
-    {{"name": "Competitor Name", "website_url": "https://example.com", "notes": "short positioning notes"}}
+    {{
+      "name": "Direct Competitor Name",
+      "website_url": "https://example.com",
+      "notes": "Detailed breakdown: value proposition, pricing models/ranges, target market overlap, marketing channels used (SEO, Meta ads, influencers, offline), and their competitive advantage vs the target company."
+    }}
   ],
-  "target_audience_characteristics": ["trait one", "trait two"],
-  "market_trends": ["trend one", "trend two"],
-  "additional_notes": ["any other useful, publicly available business intelligence"]
+  "target_audience_characteristics": [
+    "Specific demographic, socioeconomic profile, and student/customer personas (e.g., career switchers, fresh grads, corporate teams)",
+    "Core pain points and buying motivations (e.g., high barrier to entry, price sensitivity, demand for job placement guarantees)",
+    "Decision-making criteria and primary research channels used by buyers"
+  ],
+  "market_trends": [
+    "Macro shift or technological trend impacting customer demand in this specific niche",
+    "Pricing and payment trends (e.g., installments, ISAs, subscription vs upfront tuition)",
+    "Customer acquisition channel effectiveness and shifts in this industry"
+  ],
+  "additional_notes": [
+    "Key regulatory, economic, or competitive threats specific to this company's operating market",
+    "Identified gaps in the market that competitors are failing to address"
+  ]
 }}
 
 Rules:
-- Only report factual, publicly known market information. Do not give \
-strategic advice, opinions, or recommendations — that is not your job.
-- List 3-6 real, named competitors if you can identify them with reasonable \
-confidence. If you are not confident about specific competitors, say so in \
-additional_notes instead of inventing names.
-- "website_url" may be null if you don't know it. "notes" may be null.
-- Keep each list item concise (one sentence or less).
-- If a field has nothing useful to report, return an empty list (or empty \
-string for industry_overview) rather than omitting the field.
+- Be specific, detailed, and realistic. Avoid vague generalities like 'they face competition from online platforms'. Name real competitors operating in the exact same market and segment.
+- If the company is regional (e.g. Egyptian tech academy, local SaaS, regional e-commerce), prioritize direct local & regional competitors who fight for the exact same customers.
+- List 4 to 6 real, prominent competitors with thorough positioning notes.
+- Do not output empty placeholders. Populate every field with concrete market intelligence based on the company's real sector.
 
 Company name: {company_name}
 {business_context_block}"""

@@ -15,6 +15,7 @@ before end-to-end pipeline wiring):
 - website_collector_service          -> collect_website_content_for_consulting_case()
 - pdf_collector_service              -> collect_pdf_content_for_consulting_case()
 - social_media_collector_service     -> collect_social_media_profiles_for_consulting_case()
+- agent_reach_client                 -> fetch_social_profile_via_agent_reach()
 - small_llm_client                    -> generate_json_response_from_small_llm()
 - market_research_service            -> perform_market_and_competitor_research()
 - information_extraction_service     -> extract_useful_business_information()
@@ -28,6 +29,10 @@ Planned next:
   brick together
 """
 
+from services.agent_reach_client import (
+    fetch_social_profile_via_agent_reach,
+    is_agent_reach_available,
+)
 from services.information_extraction_service import (
     extract_useful_business_information,
     extract_useful_business_information_for_consulting_case,
@@ -60,7 +65,10 @@ __all__ = [
     "create_business_consulting_presentation_for_consulting_case",
     "extract_useful_business_information",
     "extract_useful_business_information_for_consulting_case",
+    "fetch_social_profile_via_agent_reach",
     "generate_json_response_from_small_llm",
+    "is_agent_reach_available",
     "perform_market_and_competitor_research",
     "perform_market_and_competitor_research_for_consulting_case",
 ]
+

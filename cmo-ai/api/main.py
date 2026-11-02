@@ -25,9 +25,11 @@ from __future__ import annotations
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from api.consulting_pipeline import (
     ConsultingPipelineError,
@@ -67,6 +69,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Resolve the static directory relative to this file's location so the app
+# works regardless of the working directory it is launched from.
+_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
 
 @app.exception_handler(ConsultingPipelineError)
 async def handle_consulting_pipeline_error(request: Request, exc: ConsultingPipelineError) -> JSONResponse:
@@ -84,9 +91,10 @@ async def handle_unexpected_error(request: Request, exc: Exception) -> JSONRespo
     return JSONResponse(status_code=500, content={"detail": "An unexpected error occurred."})
 
 
-@app.get("/")
-def read_root() -> dict:
-    return {"name": "cmoAI", "version": "1.0.0", "docs": "/docs"}
+@app.get("/", include_in_schema=False)
+def read_root() -> FileResponse:
+    """Serve the cmoAI frontend UI."""
+    return FileResponse(str(_STATIC_DIR / "index.html"))
 
 
 @app.get("/health")

@@ -29,6 +29,7 @@ google-generativeai==0.8.3
 # --- API layer (future brick) -------------------------------------------
 fastapi==0.115.4
 uvicorn[standard]==0.32.0
+aiofiles==24.1.0         # required by FastAPI StaticFiles for serving the UI
 
 # --- Utilities ------------------------------------------------------------
 python-slugify==8.0.4

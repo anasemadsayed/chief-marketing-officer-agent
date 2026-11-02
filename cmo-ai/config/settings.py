@@ -69,12 +69,22 @@ class ApplicationSettings(BaseSettings):
     social_media_collector_timeout_seconds: int = 15
     social_media_collector_user_agent: str = "Mozilla/5.0 (compatible; cmoAI-SocialMediaCollector/1.0)"
 
+    # -- Agent-Reach & OpenCLI Integration -------------------------------------
+    # When enabled, the social media collector will try Agent-Reach's tool
+    # ecosystem (Jina Reader, opencli, mcporter) first, falling back to the
+    # basic OG-meta-tag scraper if Agent-Reach is not installed or fails.
+    agent_reach_enabled: bool = True
+    agent_reach_timeout_seconds: int = 45
+    opencli_binary_path: str = "/home/nas_mousa/.nvm/versions/node/v22.23.3/bin/opencli"
+    node_binary_dir: str = "/home/nas_mousa/.nvm/versions/node/v22.23.3/bin"
+
     # -- Market Research Service ------------------------------------------------
-    market_research_max_context_characters: int = 3000
+    market_research_max_context_characters: int = 15000
     market_research_llm_temperature: float = 0.3
+    market_research_use_web_search: bool = True
 
     # -- Information Extraction Service ------------------------------------------
-    information_extraction_max_context_characters: int = 12000
+    information_extraction_max_context_characters: int = 25000
     information_extraction_llm_temperature: float = 0.2
 
     # -- Orchestrator: Diagnosis --------------------------------------------------

@@ -90,6 +90,8 @@ def test_build_profile_raw_content_strips_scripts_but_keeps_login_wall_text():
 def test_collect_social_media_profile_content_saves_successful_result(isolated_test_database, monkeypatch):
     case = create_consulting_case(company_name="Acme Corp")
 
+    # Disable Agent-Reach so the test exercises the OG-meta fallback path.
+    monkeypatch.setattr("config.settings.settings.agent_reach_enabled", False)
     monkeypatch.setattr(collector, "_fetch_profile_page_html", lambda url: (SAMPLE_LINKEDIN_HTML, None))
 
     result = collector.collect_social_media_profile_content(
@@ -109,6 +111,8 @@ def test_collect_social_media_profile_content_saves_successful_result(isolated_t
 def test_collect_social_media_profile_content_handles_fetch_failure_gracefully(isolated_test_database, monkeypatch):
     case = create_consulting_case(company_name="Blocked Co")
 
+    # Disable Agent-Reach so the test exercises the OG-meta fallback path.
+    monkeypatch.setattr("config.settings.settings.agent_reach_enabled", False)
     monkeypatch.setattr(
         collector, "_fetch_profile_page_html", lambda url: (None, "403 Client Error: Forbidden")
     )
@@ -162,3 +166,96 @@ def test_collect_social_media_profiles_returns_empty_list_when_no_urls_provided(
     results = collector.collect_social_media_profiles_for_consulting_case(consulting_case_id=case.id)
 
     assert results == []
+
+
+# ── Agent-Reach integration tests ─────────────────────────────────────────────
+
+
+def test_agent_reach_success_skips_fallback(isolated_test_database, monkeypatch):
+    """When Agent-Reach returns content, the fallback scraper is never called."""
+    case = create_consulting_case(company_name="LinkedIn Co")
+
+    monkeypatch.setattr("config.settings.settings.agent_reach_enabled", True)
+
+    # Agent-Reach returns rich profile content.
+    monkeypatch.setattr(
+        "services.social_media_collector_service.fetch_social_profile_via_agent_reach",
+        lambda platform, url: ("# LinkedIn Co\n\nSoftware company with 10K employees.", None),
+    )
+
+    # The fallback should never fire — make it blow up if called.
+    fallback_called = False
+
+    def failing_fallback(url):
+        nonlocal fallback_called
+        fallback_called = True
+        return (None, "should not be called")
+
+    monkeypatch.setattr(collector, "_fetch_profile_page_html", failing_fallback)
+
+    result = collector.collect_social_media_profile_content(
+        consulting_case_id=case.id,
+        platform=InformationSourceType.LINKEDIN_PROFILE,
+        profile_url="https://linkedin.com/company/linkedin-co",
+    )
+
+    assert result.collection_successful is True
+    assert "10K employees" in result.raw_content
+    assert not fallback_called, "Fallback scraper was called even though Agent-Reach succeeded"
+
+
+def test_agent_reach_failure_falls_back_to_og_meta(isolated_test_database, monkeypatch):
+    """When Agent-Reach fails, the OG-meta fallback scraper is used."""
+    case = create_consulting_case(company_name="Fallback Co")
+
+    monkeypatch.setattr("config.settings.settings.agent_reach_enabled", True)
+
+    # Agent-Reach fails.
+    monkeypatch.setattr(
+        "services.social_media_collector_service.fetch_social_profile_via_agent_reach",
+        lambda platform, url: (None, "opencli is not installed"),
+    )
+
+    # Fallback returns OG meta content.
+    monkeypatch.setattr(collector, "_fetch_profile_page_html", lambda url: (SAMPLE_FACEBOOK_HTML, None))
+
+    result = collector.collect_social_media_profile_content(
+        consulting_case_id=case.id,
+        platform=InformationSourceType.FACEBOOK_PROFILE,
+        profile_url="https://facebook.com/fallbackco",
+    )
+
+    assert result.collection_successful is True
+    assert "Acme Corp" in result.raw_content  # From SAMPLE_FACEBOOK_HTML
+
+
+def test_agent_reach_disabled_goes_straight_to_fallback(isolated_test_database, monkeypatch):
+    """When agent_reach_enabled is False, Agent-Reach is never called."""
+    case = create_consulting_case(company_name="Disabled Co")
+
+    monkeypatch.setattr("config.settings.settings.agent_reach_enabled", False)
+
+    # If Agent-Reach were called, track it.
+    agent_reach_called = False
+
+    def failing_agent_reach(platform, url):
+        nonlocal agent_reach_called
+        agent_reach_called = True
+        return (None, "should not be called")
+
+    monkeypatch.setattr(
+        "services.social_media_collector_service.fetch_social_profile_via_agent_reach",
+        failing_agent_reach,
+    )
+
+    monkeypatch.setattr(collector, "_fetch_profile_page_html", lambda url: (SAMPLE_LINKEDIN_HTML, None))
+
+    result = collector.collect_social_media_profile_content(
+        consulting_case_id=case.id,
+        platform=InformationSourceType.LINKEDIN_PROFILE,
+        profile_url="https://linkedin.com/company/disabled",
+    )
+
+    assert result.collection_successful is True
+    assert "Acme Corp" in result.raw_content
+    assert not agent_reach_called, "Agent-Reach was called even though it was disabled"

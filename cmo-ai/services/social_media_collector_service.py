@@ -5,14 +5,18 @@ Pure collection: given a LinkedIn, Facebook, or Instagram profile URL,
 fetches whatever public content is available and stores it as a raw
 CollectedSource.
 
-Reality check baked into the design: these platforms gate almost all
-real content behind a login wall and actively block scraping. What
-usually *does* survive, even for a bot, are the Open Graph / Twitter
-Card meta tags — the same preview data these platforms serve to link
-previews on WhatsApp, iMessage, Slack, etc. This service extracts that
-preview data plus whatever visible text happens to come through, and
-is honest about failure (login walls, blocks, timeouts) rather than
-pretending it scraped a full profile.
+Collection strategy (hybrid, with graceful degradation):
+
+    1. If Agent-Reach integration is enabled (the default), try the
+       Agent-Reach tool ecosystem first — Jina Reader for LinkedIn,
+       opencli for Facebook and Instagram. These tools use headless
+       browsers and authenticated sessions to bypass the login walls
+       that block simple HTTP requests.
+
+    2. If Agent-Reach is not installed, not configured, or fails for
+       any reason, fall back to the original requests+BeautifulSoup
+       codepath that extracts Open Graph / Twitter Card meta tags.
+       This yields less content but never crashes the pipeline.
 
 This service never interprets, summarizes, or judges the content — that
 is the Information Extraction Service's job (Brick 7).
@@ -28,9 +32,18 @@ from bs4 import BeautifulSoup
 
 from config.settings import settings
 from domain import CollectedSource, InformationSourceType
+from services.agent_reach_client import fetch_social_profile_via_agent_reach
 from storage.collected_source_repository import create_and_save_collected_source
 
 logger = logging.getLogger(__name__)
+
+# Map from our domain enum to the Agent-Reach platform name expected by
+# the client module's dispatch function.
+_PLATFORM_NAME_MAP: dict[InformationSourceType, str] = {
+    InformationSourceType.LINKEDIN_PROFILE: "linkedin",
+    InformationSourceType.FACEBOOK_PROFILE: "facebook",
+    InformationSourceType.INSTAGRAM_PROFILE: "instagram",
+}
 
 # Meta tag names/properties checked, in priority order, to build the
 # "preview" section of the collected content. Open Graph first, since
@@ -84,6 +97,17 @@ def collect_social_media_profile_content(
     Fetch one social media profile URL and store whatever public content
     (preview meta tags + visible text) is available as a CollectedSource.
 
+    Uses a two-tier collection strategy:
+
+    1. **Agent-Reach** (if enabled): invoke the appropriate upstream tool
+       (Jina Reader, opencli, or mcporter) to get rich, authenticated
+       profile content. This is far more likely to succeed against
+       LinkedIn/Facebook/Instagram login walls.
+
+    2. **Fallback** (requests + BeautifulSoup): extract Open Graph and
+       Twitter Card meta tags from whatever HTML the platform returns to
+       a plain HTTP request. Usually yields only the preview snippet.
+
     On any failure — network error, non-2xx response, non-HTML content —
     a CollectedSource is still saved with collection_successful=False and
     an explanatory error message, the same pattern used by the website
@@ -93,6 +117,33 @@ def collect_social_media_profile_content(
         "Collecting %s content for case=%s url=%s", platform.value, consulting_case_id, profile_url
     )
 
+    # ── Tier 1: Agent-Reach ──────────────────────────────────────────
+    if settings.agent_reach_enabled:
+        agent_reach_platform = _PLATFORM_NAME_MAP.get(platform)
+        if agent_reach_platform:
+            content, error = fetch_social_profile_via_agent_reach(agent_reach_platform, profile_url)
+            if content:
+                logger.info(
+                    "Agent-Reach successfully collected %s content (%d chars) for case=%s",
+                    platform.value,
+                    len(content),
+                    consulting_case_id,
+                )
+                return create_and_save_collected_source(
+                    consulting_case_id=consulting_case_id,
+                    source_type=platform,
+                    source_url_or_path=profile_url,
+                    raw_content=content,
+                    collection_successful=True,
+                )
+            logger.info(
+                "Agent-Reach could not collect %s at %s (%s), falling back to basic scraper",
+                platform.value,
+                profile_url,
+                error,
+            )
+
+    # ── Tier 2: basic OG-meta fallback ───────────────────────────────
     html, error = _fetch_profile_page_html(profile_url)
 
     if html is None:
@@ -123,6 +174,8 @@ def collect_social_media_profile_content(
         collection_successful=True,
     )
 
+
+# ── Fallback helpers (unchanged from the original implementation) ────
 
 def _fetch_profile_page_html(url: str) -> tuple[Optional[str], Optional[str]]:
     """
@@ -191,14 +244,33 @@ def _extract_preview_meta_lines(soup: BeautifulSoup) -> list[str]:
 
 def _extract_visible_text_from_html(soup: BeautifulSoup) -> str:
     """
-    Strip non-content markup (script/style/etc.) and return the page's
-    visible text. Deliberately does NOT strip navigation, login prompts,
-    or boilerplate — that noise removal is the Information Extraction
-    Service's job (Brick 7), not the collector's.
+    Strip non-content markup (script/style/etc.) and return meaningful visible text.
+    Filters out massive multi-language footers and boilerplate login wall noise.
     """
     for tag in soup(_NON_CONTENT_TAGS):
         tag.decompose()
 
     raw_text = soup.get_text(separator="\n")
-    meaningful_lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+    meaningful_lines = []
+    
+    # Common internationalization language dumps on Instagram/Facebook login walls
+    noise_tokens = {
+        "afrikaans", "čeština", "dansk", "deutsch", "ελληνικά", "español", "suomi",
+        "français", "עברית", "bahasa indonesia", "italiano", "日本語", "한국어",
+        "bahasa melayu", "norsk", "nederlands", "polski", "português", "русский",
+        "svenska", "ภาษาไทย", "filipino", "türkçe", "中文", "বাংলা", "ગુજરાતી",
+        "हिन्दी", "hrvatski", "magyar", "ಕನ್ನಡ", "മലയാളം", "मराठी", "नेपाली",
+        "ਪੰਜਾਬੀ", "සිංහල", "slovenčina", "தமிழ்", "తెలుగు", "اردو", "tiếng việt",
+        "български", "română", "српски", "українська"
+    }
+
+    for line in raw_text.splitlines():
+        cleaned = line.strip()
+        if not cleaned:
+            continue
+        # Drop language picker noise
+        if cleaned.lower() in noise_tokens:
+            continue
+        meaningful_lines.append(cleaned)
+
     return "\n".join(meaningful_lines)
